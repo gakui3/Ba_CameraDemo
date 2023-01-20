@@ -12,6 +12,7 @@ let phi, theta, alt, box, raycaster;
 let onPress = false;
 let nextPos;
 let vPhi, vTheta, vAlt;
+let pos;
 
 const param = {
   value01: 1.0,
@@ -60,9 +61,9 @@ function addCamera() {
   vPhi = 0;
   vTheta = 0;
   vAlt = 0;
-  const p = calcLonLatToXYZ(phi * 2.0, theta, alt);
-  nextPos = p;
-  camera.position.set(nextPos.x, nextPos.y, nextPos.z);
+  pos = calcLonLatToXYZ(phi, theta, alt);
+  // nextPos = p;
+  // camera.position.set(nextPos.x, nextPos.y, nextPos.z);
 
   target = new THREE.Object3D();
   target.add(camera);
@@ -115,7 +116,7 @@ function addCamera() {
 
 function addObject() {
   geometry = new THREE.BoxGeometry(0.5, 1, 0.5);
-  const groundGeo = new THREE.PlaneGeometry(30, 30, 10, 10);
+  const groundGeo = new THREE.PlaneGeometry(50, 50, 10, 10);
 
   // const mat = new THREE.ShaderMaterial({
   //   vertexShader: testVert,
@@ -189,19 +190,27 @@ function update() {
   theta = theta + vTheta * 0.03;
   alt = alt + vAlt * 0.03;
 
-  const p = calcLonLatToXYZ(phi, theta, alt);
+  // console.log(theta);
 
   //rayの設定
   // raycaster.set(camera.getWorldPosition(), new THREE.Vector3(0, -1, 0));
   // const intersects = raycaster.intersectObject(ground);
   // if (intersects.length > 0) {
-  //   const wCamPos = camera.getWorldPosition();
-  //   const dist = wCamPos.distanceTo(intersects[0].point);
-  //   if (dist < 0.5) {
-  //   }
+  // const wCamPos = camera.getWorldPosition();
+  // const dist = wCamPos.distanceTo(intersects[0].point);
+  // pos = calcLonLatToXYZ(phi, theta, alt);
+  // console.log(`${theta}  ${dist} ${pos.y}`);
+
+  // if (dist < 0.5) {
+  // const _theta = Math.acos(0.5 / alt);
+  // theta = _theta * -1;
+  // pos.y = -0.49;
+  // vTheta = 0;
+  pos = calcLonLatToXYZ(phi, theta, alt);
+  // }
   // }
 
-  camera.position.set(p.x, p.y, p.z);
+  camera.position.set(pos.x, pos.y, pos.z);
   camera.lookAt(box.getWorldPosition());
 }
 
@@ -221,6 +230,6 @@ function resizeRendererToDisplaySize(renderer) {
   init();
   addCamera();
   addObject();
-  addGUI();
+  // addGUI();
   update();
 })();
