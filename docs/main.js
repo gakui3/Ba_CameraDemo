@@ -191,24 +191,23 @@ function update() {
   alt = alt + vAlt * 0.03;
 
   // console.log(theta);
+  pos = calcLonLatToXYZ(phi, theta, alt);
 
   //rayの設定
-  // raycaster.set(camera.getWorldPosition(), new THREE.Vector3(0, -1, 0));
-  // const intersects = raycaster.intersectObject(ground);
-  // if (intersects.length > 0) {
-  // const wCamPos = camera.getWorldPosition();
-  // const dist = wCamPos.distanceTo(intersects[0].point);
-  // pos = calcLonLatToXYZ(phi, theta, alt);
-  // console.log(`${theta}  ${dist} ${pos.y}`);
+  raycaster.set(camera.getWorldPosition(), new THREE.Vector3(0, -1, 0));
+  const intersects = raycaster.intersectObject(ground);
+  if (intersects.length > 0) {
+    const wCamPos = camera.getWorldPosition();
+    const dist = wCamPos.distanceTo(intersects[0].point);
+    // console.log(`${theta}  ${dist} ${pos.y} wcampos:${wCamPos.y}`);
 
-  // if (dist < 0.5) {
-  // const _theta = Math.acos(0.5 / alt);
-  // theta = _theta * -1;
-  // pos.y = -0.49;
-  // vTheta = 0;
-  pos = calcLonLatToXYZ(phi, theta, alt);
-  // }
-  // }
+    // if (dist < 0.5) {
+    //   const _theta = Math.acos(0.5 / alt);
+    //   theta = _theta;
+    //   vTheta = 0;
+    //   pos = calcLonLatToXYZ(phi, theta, alt);
+    // }
+  }
 
   camera.position.set(pos.x, pos.y, pos.z);
   camera.lookAt(box.getWorldPosition());
