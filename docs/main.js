@@ -11,7 +11,7 @@ let target, ground;
 let phi, theta, alt, box, raycaster;
 let onPress = false;
 let nextPos;
-let vPhi, vTheta;
+let vPhi, vTheta, vAlt;
 
 const param = {
   value01: 1.0,
@@ -57,6 +57,9 @@ function addCamera() {
   phi = 1.0;
   theta = 1.57;
   alt = 10.0;
+  vPhi = 0;
+  vTheta = 0;
+  vAlt = 0;
   const p = calcLonLatToXYZ(phi * 2.0, theta, alt);
   nextPos = p;
   camera.position.set(nextPos.x, nextPos.y, nextPos.z);
@@ -74,32 +77,16 @@ function addCamera() {
 
   window.addEventListener("mousemove", (e) => {
     if (onPress) {
-      phi += e.movementX * 0.001;
-      theta += e.movementY * -0.001;
-      const p = calcLonLatToXYZ(phi * 2.0, theta, alt);
-      // camera.position.set(p.x, p.y, p.z);
-      const _p = p.clone();
-
-      raycaster.set(_p, new THREE.Vector3(0, -1, 0));
-      const intersects = raycaster.intersectObject(ground);
-      if (intersects.length > 0) {
-        // const wCamPos = camera.getWorldPosition();
-        const dist = p.distanceTo(intersects[0].point);
-        if (dist > 0.5) {
-          camera.position.set(p.x, p.y, p.z);
-        }
-      }
-
-      const v3 = new THREE.Vector3(0, 0, 0);
-      box.getWorldPosition(v3);
-      camera.lookAt(v3);
+      vPhi = vPhi + e.movementX * 0.06 * -0.03;
+      vTheta = vTheta + e.movementY * 0.06 * -0.03;
     }
   });
 
   window.addEventListener("wheel", (e) => {
-    alt += e.deltaY * -0.05;
-    nextPos = calcLonLatToXYZ(phi * 2.0, theta, alt);
-    camera.position.set(nextPos.x, nextPos.y, nextPos.z);
+    vAlt = vAlt + e.deltaY * 0.05;
+    // alt += e.deltaY * -0.05;
+    // nextPos = calcLonLatToXYZ(phi * 2.0, theta, alt);
+    // camera.position.set(nextPos.x, nextPos.y, nextPos.z);
   });
 
   window.addEventListener("keydown", (e) => {
@@ -191,10 +178,18 @@ function update() {
   // controls.update(0.03);
 
   // const cameraCurretnPos = camera.getWorldPosition();
-  const v3 = new THREE.Vector3(0, 0, 0);
-  box.getWorldPosition(v3);
-  // camera.lookAt(box.getWorldPosition());
+  // const v3 = new THREE.Vector3(0, 0, 0);
+  // box.getWorldPosition(v3);
   // camera.position.set(nextPos.x, nextPos.y, nextPos.z);
+
+  vPhi = vPhi * 0.97;
+  vTheta = vTheta * 0.97;
+  vAlt = vAlt * 0.97;
+  phi = phi + vPhi * 0.03;
+  theta = theta + vTheta * 0.03;
+  alt = alt + vAlt * 0.03;
+
+  const p = calcLonLatToXYZ(phi, theta, alt);
 
   //rayの設定
   // raycaster.set(camera.getWorldPosition(), new THREE.Vector3(0, -1, 0));
@@ -202,9 +197,12 @@ function update() {
   // if (intersects.length > 0) {
   //   const wCamPos = camera.getWorldPosition();
   //   const dist = wCamPos.distanceTo(intersects[0].point);
-  //   // if (dist < 0.5) {
-  //   // }
+  //   if (dist < 0.5) {
+  //   }
   // }
+
+  camera.position.set(p.x, p.y, p.z);
+  camera.lookAt(box.getWorldPosition());
 }
 
 function resizeRendererToDisplaySize(renderer) {
