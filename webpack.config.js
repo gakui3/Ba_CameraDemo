@@ -49,6 +49,12 @@ module.exports = {
   // import 文で .ts ファイルを解決するため
   resolve: {
     extensions: [".ts", ".js"],
+    alias: {
+      path: require.resolve("path-browserify"),
+    },
+    fallback: {
+      fs: false,
+    },
   },
   // ES5(IE11等)向けの指定（webpack 5以上で必要）
   target: ["web", "es5"],
