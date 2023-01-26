@@ -9,12 +9,10 @@ let nextPos;
 let vPhi, vTheta, vAlt;
 let pos;
 let cameraVelocity;
+let reflectionThreshold;
 
 const param = {
-  value01: 1.0,
-  value02: true,
-  value03: 1.0,
-  value04: "hoge01",
+  reflectionThreshold: 1.0,
 };
 
 function init() {
@@ -24,6 +22,7 @@ function init() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
   scene = new THREE.Scene();
+  reflectionThreshold = 0.1;
 
   raycaster = new THREE.Raycaster();
   cameraVelocity = new THREE.Vector3(0, 0, 0);
@@ -129,21 +128,14 @@ function addObject() {
 
 function addGUI() {
   gui = new GUI();
-  const folder = gui.addFolder("folder");
+  const folder = gui.addFolder("params");
   gui.width = 300;
 
-  folder.add(param, "value01").onChange((value) => {
-    console.log(value);
-  });
-  folder.add(param, "value02").onChange((value) => {
-    console.log(value);
-  });
-  folder.add(param, "value03", 0, 2.0).onChange((value) => {
-    console.log(value);
-  });
-  folder.add(param, "value04", ["hoge01", "hoge02"]).onChange((value) => {
-    console.log(value);
-  });
+  folder
+    .add(param, "reflectionThreshold", 0.01, 1.0, 0.01)
+    .onChange((value) => {
+      reflectionThreshold = value;
+    });
 }
 
 const calcLonLatToXYZ = (_phi, _theta, _alt) => {
@@ -235,7 +227,7 @@ function update() {
 
     const dist = intersects[0].point.distanceTo(camera.position);
     if (dist < 0.2) {
-      cameraVelocity = dir.multiplyScalar(0.1);
+      cameraVelocity = dir.multiplyScalar(reflectionThreshold);
     }
   }
 
@@ -269,6 +261,6 @@ function resizeRendererToDisplaySize(renderer) {
   init();
   addCamera();
   addObject();
-  // addGUI();
+  addGUI();
   update();
 })();
