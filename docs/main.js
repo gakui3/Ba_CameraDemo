@@ -10,6 +10,8 @@ let vPhi, vTheta, vAlt;
 let pos;
 let cameraVelocity;
 let reflectionThreshold;
+let _dir;
+let isCollision;
 
 const param = {
   reflectionThreshold: 0.1,
@@ -23,6 +25,8 @@ function init() {
   document.body.appendChild(renderer.domElement);
   scene = new THREE.Scene();
   reflectionThreshold = 0.1;
+  _dir = new THREE.Vector3(0, 0, 0);
+  isCollision = false;
 
   raycaster = new THREE.Raycaster();
   cameraVelocity = new THREE.Vector3(0, 0, 0);
@@ -155,21 +159,8 @@ function update() {
   }
 
   let cameraPosition = camera.position.clone();
-  cameraVelocity.multiplyScalar(0.97);
-
-  const cv = cameraVelocity.clone();
-  cameraPosition.add(cv.multiplyScalar(0.03));
-  camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
 
   renderer.render(scene, camera);
-  // controls.update();
-
-  // vPhi = vPhi * 0.97;
-  // vTheta = vTheta * 0.97;
-  // vAlt = vAlt * 0.97;
-  // phi = phi + vPhi * 0.03;
-  // theta = theta + vTheta * 0.03;
-  // alt = alt + vAlt * 0.03;
 
   //rayの設定
   const v3 = new THREE.Vector3(0, 0, 0);
@@ -178,7 +169,6 @@ function update() {
   const forward = new THREE.Vector4(0, 0, -1, 0);
   forward.applyMatrix4(camera.matrix).normalize();
   const fv = new THREE.Vector3(forward.x, forward.y, forward.z);
-  // console.log(camera.position);
 
   raycaster.set(camera.position, fv);
   const intersects = raycaster.intersectObject(box);
@@ -190,8 +180,14 @@ function update() {
 
     const wn = box.localToWorld(intersects[0].face.normal.clone());
     // console.log(wn);
-    const dir = fv.clone().normalize();
-    dir.reflect(wn.clone());
+    let dir = fv.clone().normalize();
+
+    //反射ベクトルを求める
+    // dir.reflect(wn.clone());
+    //並行ベクトルを求める
+    const a = dir.clone().multiplyScalar(-1).dot(wn.clone());
+    const paraDir = dir.clone().add(wn.clone().multiplyScalar(a));
+    dir = paraDir.normalize();
 
     //
     const normPoints = [];
@@ -226,23 +222,17 @@ function update() {
     //
 
     const dist = intersects[0].point.distanceTo(camera.position);
-    if (dist < 0.2) {
-      cameraVelocity = dir.multiplyScalar(reflectionThreshold);
+    if (dist <= 0.2) {
+      cameraVelocity = dir.multiplyScalar(0.4);
+      isCollision = true;
     }
   }
 
-  // if (dist < 0.5) {
-  // const _theta = Math.acos(0.5 / alt);
-  // theta = _theta * -1;
-  // pos.y = -0.49;
-  // vTheta = 0;
+  cameraVelocity.multiplyScalar(0.97);
 
-  // pos = calcLonLatToXYZ(phi, theta, alt);
-  // }
-  // }
-
-  // camera.position.set(pos.x, pos.y, pos.z);
-  // camera.lookAt(box.getWorldPosition());
+  const cv = cameraVelocity.clone();
+  cameraPosition.add(cv.multiplyScalar(0.03));
+  camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
 }
 
 function resizeRendererToDisplaySize(renderer) {
