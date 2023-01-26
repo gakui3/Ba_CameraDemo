@@ -12,7 +12,7 @@ let cameraVelocity;
 let reflectionThreshold;
 
 const param = {
-  reflectionThreshold: 1.0,
+  reflectionThreshold: 0.1,
 };
 
 function init() {
