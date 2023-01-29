@@ -1,9 +1,10 @@
 import * as THREE from "three";
 import {GUI} from "three/examples/jsm/libs/dat.gui.module";
+import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 
-let canvas, renderer, scene, camera, geometry, gui, controls;
+let canvas, renderer, scene, camera, geometry, gui;
 let target, ground;
-let phi, theta, alt, box, raycaster;
+let phi, theta, alt, raycaster;
 let onPress = false;
 let nextPos;
 let vPhi, vTheta, vAlt;
@@ -12,6 +13,8 @@ let cameraVelocity;
 let reflectionThreshold;
 let _dir;
 let isCollision;
+let intersectObjects;
+let controls;
 
 const param = {
   reflectionThreshold: 0.1,
@@ -27,6 +30,7 @@ function init() {
   reflectionThreshold = 0.1;
   _dir = new THREE.Vector3(0, 0, 0);
   isCollision = false;
+  intersectObjects = [];
 
   raycaster = new THREE.Raycaster();
   cameraVelocity = new THREE.Vector3(0, 0, 0);
@@ -36,6 +40,8 @@ function addCamera() {
   camera = new THREE.PerspectiveCamera(45, 800 / 600, 0.1, 100);
   // camera.position.set(0, 0, 10);
   camera.aspect = canvas.clientWidth / canvas.clientHeight;
+  controls = new OrbitControls(camera, canvas);
+  controls.update();
 
   const dLight = new THREE.DirectionalLight(0xffffff, 1.0);
   dLight.position.set(30, 30, 30); // ライトの方向
@@ -65,13 +71,16 @@ function addCamera() {
 
   window.addEventListener("mousemove", (e) => {
     if (onPress) {
-      // vPhi = vPhi + e.movementX * 0.06 * -0.03;
-      // vTheta = vTheta + e.movementY * 0.06 * -0.03;
-      const rotateYYalue = e.movementX * 0.001;
-      const up = new THREE.Vector4(0, 1, 0, 0);
-      up.applyMatrix4(camera.matrix).normalize();
-      const axis = new THREE.Vector3(up.x, up.y, up.z);
-      camera.rotateOnAxis(axis, rotateYYalue);
+      // const rotateYYalue = e.movementX * 0.001;
+      // const rotateXYalue = e.movementY * 0.001;
+      // const up = new THREE.Vector4(0, 1, 0, 0);
+      // up.applyMatrix4(camera.matrix).normalize();
+      // const axis_up = new THREE.Vector3(up.x, up.y, up.z);
+      // camera.rotateOnAxis(axis_up, rotateYYalue);
+      // const right = new THREE.Vector4(1, 0, 0, 0);
+      // right.applyMatrix4(camera.matrix).normalize();
+      // const axis_right = new THREE.Vector3(right.x, right.y, right.z);
+      // camera.rotateOnAxis(axis_right, rotateXYalue);
     }
   });
 
@@ -104,29 +113,55 @@ function addCamera() {
   });
 }
 
-function addObject() {
-  geometry = new THREE.BoxGeometry(2, 1.5, 0.25);
-  const groundGeo = new THREE.PlaneGeometry(50, 50, 10, 10);
+function addBox(x, y, z, sx, sy, sz, rot) {
+  const loader = new THREE.TextureLoader();
+  const texture = loader.load("./testTex.png");
+  const mat1 = new THREE.MeshPhongMaterial({map: texture});
+  const boxGeometry = new THREE.BoxGeometry(sx, sy, sz); //new THREE.BoxGeometry(2, 1.5, 0.25);
+  const box = new THREE.Mesh(boxGeometry, mat1);
+  box.position.set(x, y, z);
+  box.rotateY(rot);
+  box.castShadow = true;
+  box.receiveShadow = true;
+  scene.add(box);
+  intersectObjects.push(box);
+}
 
+function addObject() {
   const loader = new THREE.TextureLoader();
   const texture = loader.load("./testTex.png");
 
   const mat = new THREE.MeshPhongMaterial();
   const mat1 = new THREE.MeshPhongMaterial({map: texture});
 
-  box = new THREE.Mesh(geometry, mat1);
-  box.position.set(0, 0, 0);
-  box.rotateY(0.785);
-  box.castShadow = true;
-  box.receiveShadow = true;
-  scene.add(box);
+  //sphere
+  const cylinderGeometry = new THREE.CylinderGeometry(1, 1, 2, 20, 20); //new THREE.BoxGeometry(2, 1.5, 0.25);
+  const cyl = new THREE.Mesh(cylinderGeometry, mat1);
+  cyl.position.set(4, 0, 0);
+  cyl.castShadow = true;
+  cyl.receiveShadow = true;
+  scene.add(cyl);
+  intersectObjects.push(cyl);
 
+  const sphereGeometry = new THREE.SphereGeometry(1, 20);
+  const spe = new THREE.Mesh(sphereGeometry, mat1);
+  spe.position.set(-4, 0, 0);
+  spe.castShadow = true;
+  spe.receiveShadow = true;
+  scene.add(spe);
+  intersectObjects.push(spe);
+
+  //box
+  addBox(0, 0, 0, 2, 1.5, 0.25, 0);
+  addBox(1.0, 0, -0.45, 2, 1.5, 0.25, 1.57);
+  addBox(0, -0.5, 3, 2, 0.25, 2, 0);
+
+  const groundGeo = new THREE.PlaneGeometry(50, 50, 10, 10);
   ground = new THREE.Mesh(groundGeo, mat);
   ground.receiveShadow = true;
 
   ground.rotateX(-1.57);
-  ground.position.set(0, -0.5, 0);
-  scene.add(box);
+  ground.position.set(0, -0.75, 0);
   scene.add(ground);
 }
 
@@ -171,19 +206,26 @@ function update() {
   const fv = new THREE.Vector3(forward.x, forward.y, forward.z);
 
   raycaster.set(camera.position, fv);
-  const intersects = raycaster.intersectObject(box);
+  const intersects = raycaster.intersectObjects(intersectObjects);
   if (intersects.length > 0) {
     var selectedObject = scene.getObjectByName("refLine");
     scene.remove(selectedObject);
     selectedObject = scene.getObjectByName("dirLine");
     scene.remove(selectedObject);
 
-    const wn = box.localToWorld(intersects[0].face.normal.clone());
-    // console.log(wn);
+    // const wn = intersects[0].object.localToWorld(
+    //   intersects[0].face.normal.clone()
+    // );
+    const wn = new THREE.Vector3(0, 0, 0);
+    const normalMatrix = new THREE.Matrix3();
+    normalMatrix.getNormalMatrix(intersects[0].object.matrixWorld);
+    wn.copy(intersects[0].face.normal.clone())
+      .applyMatrix3(normalMatrix)
+      .normalize();
     let dir = fv.clone().normalize();
 
     //反射ベクトルを求める
-    // dir.reflect(wn.clone());
+    // dir.reflect(wn.clone()).normalize();
     //並行ベクトルを求める
     const a = dir.clone().multiplyScalar(-1).dot(wn.clone());
     const paraDir = dir.clone().add(wn.clone().multiplyScalar(a));
@@ -220,6 +262,15 @@ function update() {
     refLine.name = "refLine";
     scene.add(refLine);
     //
+
+    //debug
+    // const boxGeometry = new THREE.BoxGeometry(0.05, 0.05, 0.05);
+    // const box = new THREE.Mesh(
+    //   boxGeometry,
+    //   new THREE.MeshPhongMaterial({color: 0xffff00})
+    // );
+    // box.position.copy(intersects[0].point);
+    // scene.add(box);
 
     const dist = intersects[0].point.distanceTo(camera.position);
     if (dist <= 0.2) {
