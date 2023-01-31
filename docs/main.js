@@ -34,7 +34,7 @@ function init() {
 }
 
 function addCamera() {
-  camera = new THREE.PerspectiveCamera(45, 800 / 600, 0.1, 100);
+  camera = new THREE.PerspectiveCamera(45, 800 / 600, 0.01, 100);
   // camera.position.set(0, 0, 10);
   camera.aspect = canvas.clientWidth / canvas.clientHeight;
   controls = new OrbitControls(camera, canvas);
@@ -258,7 +258,7 @@ function update() {
 
   collisionCheck(dir);
 
-  cameraVelocity.multiplyScalar(0.8);
+  cameraVelocity.multiplyScalar(0.85);
 
   const cv = cameraVelocity.clone();
   cameraPosition.add(cv.multiplyScalar(0.03));
