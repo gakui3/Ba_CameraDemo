@@ -41,7 +41,7 @@ function addCamera() {
   controls.update();
 
   const dLight = new THREE.DirectionalLight(0xffffff, 1.0);
-  dLight.position.set(30, 30, 30); // ライトの方向
+  dLight.position.set(-30, 30, 30); // ライトの方向
   const aLight = new THREE.AmbientLight(0xffffff, 0.2);
   dLight.castShadow = true;
   dLight.shadow.mapSize.width = 2048; // default
@@ -232,7 +232,7 @@ function collisionCheck(dir) {
     );
 
     const dist = intersects[0].point.distanceTo(camera.position);
-    if (dist <= 0.25) {
+    if (dist <= 0.3) {
       //acc = dir;
       return dir;
     }
