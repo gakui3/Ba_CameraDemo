@@ -91,12 +91,12 @@ function addCamera() {
   window.addEventListener("keydown", (e) => {
     if (e.key === "w") {
       const v = cameraVelocity.clone();
-      cameraVelocity = v.add(acc.clone().multiplyScalar(0.03 * 50.0));
+      cameraVelocity = v.add(acc.clone().multiplyScalar(0.03 * 10.0));
     }
 
     if (e.key === "s") {
       const v = cameraVelocity.clone();
-      cameraVelocity = v.add(acc.clone().multiplyScalar(0.03 * 50.0 * -1));
+      cameraVelocity = v.add(acc.clone().multiplyScalar(0.03 * 10.0 * -1));
     }
   });
 }
@@ -141,7 +141,7 @@ function addObject() {
 
   //box
   addBox(0, 0, 0, 2, 1.5, 0.25, 0);
-  addBox(1.0, 0, -0.45, 2, 1.5, 0.25, 1.57);
+  addBox(1.0, 0, 0, 3, 1.5, 0.25, 1.57);
   addBox(0, -0.5, 3, 2, 0.25, 2, 0);
 
   const groundGeo = new THREE.PlaneGeometry(50, 50, 10, 10);
@@ -232,9 +232,13 @@ function collisionCheck(dir) {
     );
 
     const dist = intersects[0].point.distanceTo(camera.position);
-    if (dist <= 0.5) {
-      acc = dir;
+    if (dist <= 0.25) {
+      //acc = dir;
+      return dir;
     }
+    return null;
+  } else {
+    return null;
   }
 }
 
@@ -256,7 +260,14 @@ function update() {
   const dir = new THREE.Vector3(forward.x, forward.y, forward.z);
   acc = dir.clone();
 
-  collisionCheck(dir);
+  const firstDir = collisionCheck(dir);
+  if (firstDir !== null) {
+    acc = firstDir;
+    const secondDir = collisionCheck(firstDir);
+    if (secondDir !== null) {
+      acc = secondDir;
+    }
+  }
 
   cameraVelocity.multiplyScalar(0.85);
 
