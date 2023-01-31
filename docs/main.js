@@ -13,6 +13,7 @@ let cameraVelocity;
 let reflectionThreshold;
 let intersectObjects;
 let controls;
+let acc;
 
 const param = {
   reflectionThreshold: 0.1,
@@ -87,24 +88,15 @@ function addCamera() {
   //   // camera.position.set(nextPos.x, nextPos.y, nextPos.z);
   // });
 
-  const acc = 10.0;
   window.addEventListener("keydown", (e) => {
     if (e.key === "w") {
-      const forward = new THREE.Vector4(0, 0, 1, 0);
-      forward.applyMatrix4(camera.matrix).normalize();
-      const fv = new THREE.Vector3(forward.x, forward.y, forward.z);
-
       const v = cameraVelocity.clone();
-      cameraVelocity = v.add(fv.multiplyScalar(-0.03 * acc));
+      cameraVelocity = v.add(acc.clone().multiplyScalar(0.03 * 50.0));
     }
 
     if (e.key === "s") {
-      const forward = new THREE.Vector4(0, 0, 1, 0);
-      forward.applyMatrix4(camera.matrix).normalize();
-      const fv = new THREE.Vector3(forward.x, forward.y, forward.z);
-
       const v = cameraVelocity.clone();
-      cameraVelocity = v.add(fv.multiplyScalar(0.03 * acc));
+      cameraVelocity = v.add(acc.clone().multiplyScalar(0.03 * 50.0 * -1));
     }
   });
 }
@@ -240,8 +232,8 @@ function collisionCheck(dir) {
     );
 
     const dist = intersects[0].point.distanceTo(camera.position);
-    if (dist <= 0.2) {
-      cameraVelocity = dir.multiplyScalar(0.4);
+    if (dist <= 0.5) {
+      acc = dir;
     }
   }
 }
@@ -262,9 +254,11 @@ function update() {
   const forward = new THREE.Vector4(0, 0, -1, 0);
   forward.applyMatrix4(camera.matrix).normalize();
   const dir = new THREE.Vector3(forward.x, forward.y, forward.z);
+  acc = dir.clone();
+
   collisionCheck(dir);
 
-  cameraVelocity.multiplyScalar(0.97);
+  cameraVelocity.multiplyScalar(0.8);
 
   const cv = cameraVelocity.clone();
   cameraPosition.add(cv.multiplyScalar(0.03));
