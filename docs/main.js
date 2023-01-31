@@ -11,8 +11,6 @@ let vPhi, vTheta, vAlt;
 let pos;
 let cameraVelocity;
 let reflectionThreshold;
-let _dir;
-let isCollision;
 let intersectObjects;
 let controls;
 
@@ -28,8 +26,6 @@ function init() {
   document.body.appendChild(renderer.domElement);
   scene = new THREE.Scene();
   reflectionThreshold = 0.1;
-  _dir = new THREE.Vector3(0, 0, 0);
-  isCollision = false;
   intersectObjects = [];
 
   raycaster = new THREE.Raycaster();
@@ -184,6 +180,72 @@ const calcLonLatToXYZ = (_phi, _theta, _alt) => {
   return new THREE.Vector3(x, y, z);
 };
 
+function drawDebugLine(name, start, end, color) {
+  var selectedObject = scene.getObjectByName(name);
+
+  if (selectedObject != null) {
+    scene.remove(selectedObject);
+  }
+
+  const points = [];
+  points.push(start);
+  points.push(end.add(new THREE.Vector3(0, 0.05, 0)));
+  const normMat = new THREE.LineBasicMaterial({
+    color: color,
+  });
+  const geom = new THREE.BufferGeometry().setFromPoints(points);
+  const line = new THREE.Line(geom, normMat);
+  line.name = name;
+  scene.add(line);
+}
+
+function collisionCheck(dir) {
+  const v3 = new THREE.Vector3(0, 0, 0);
+  camera.getWorldPosition(v3);
+
+  const fv = new THREE.Vector3(dir.x, dir.y, dir.z);
+
+  raycaster.set(camera.position, fv);
+  const intersects = raycaster.intersectObjects(intersectObjects);
+  if (intersects.length > 0) {
+    //ローカルの法線をワールド座標系に変換
+    const wn = new THREE.Vector3(0, 0, 0);
+    const normalMatrix = new THREE.Matrix3();
+    normalMatrix.getNormalMatrix(intersects[0].object.matrixWorld);
+    wn.copy(intersects[0].face.normal.clone())
+      .applyMatrix3(normalMatrix)
+      .normalize();
+    let dir = fv.clone().normalize();
+
+    //並行ベクトルを求める
+    const a = dir.clone().multiplyScalar(-1).dot(wn.clone());
+    const paraDir = dir.clone().add(wn.clone().multiplyScalar(a));
+    dir = paraDir.normalize();
+
+    //debug用のlineを描画
+    drawDebugLine(
+      "dirLine",
+      intersects[0].point,
+      wn.clone().add(intersects[0].point),
+      0x0000ff
+    );
+    drawDebugLine(
+      "refLine",
+      intersects[0].point,
+      dir
+        .clone()
+        .add(intersects[0].point.clone())
+        .add(new THREE.Vector3(0, 0.05, 0)),
+      0xffff00
+    );
+
+    const dist = intersects[0].point.distanceTo(camera.position);
+    if (dist <= 0.2) {
+      cameraVelocity = dir.multiplyScalar(0.4);
+    }
+  }
+}
+
 function update() {
   requestAnimationFrame(update);
 
@@ -197,87 +259,10 @@ function update() {
 
   renderer.render(scene, camera);
 
-  //rayの設定
-  const v3 = new THREE.Vector3(0, 0, 0);
-  camera.getWorldPosition(v3);
-
   const forward = new THREE.Vector4(0, 0, -1, 0);
   forward.applyMatrix4(camera.matrix).normalize();
-  const fv = new THREE.Vector3(forward.x, forward.y, forward.z);
-
-  raycaster.set(camera.position, fv);
-  const intersects = raycaster.intersectObjects(intersectObjects);
-  if (intersects.length > 0) {
-    var selectedObject = scene.getObjectByName("refLine");
-    scene.remove(selectedObject);
-    selectedObject = scene.getObjectByName("dirLine");
-    scene.remove(selectedObject);
-
-    // const wn = intersects[0].object.localToWorld(
-    //   intersects[0].face.normal.clone()
-    // );
-    const wn = new THREE.Vector3(0, 0, 0);
-    const normalMatrix = new THREE.Matrix3();
-    normalMatrix.getNormalMatrix(intersects[0].object.matrixWorld);
-    wn.copy(intersects[0].face.normal.clone())
-      .applyMatrix3(normalMatrix)
-      .normalize();
-    let dir = fv.clone().normalize();
-
-    //反射ベクトルを求める
-    // dir.reflect(wn.clone()).normalize();
-    //並行ベクトルを求める
-    const a = dir.clone().multiplyScalar(-1).dot(wn.clone());
-    const paraDir = dir.clone().add(wn.clone().multiplyScalar(a));
-    dir = paraDir.normalize();
-
-    //
-    const normPoints = [];
-    normPoints.push(intersects[0].point);
-    const p1 = wn.clone().add(intersects[0].point);
-    normPoints.push(p1.add(new THREE.Vector3(0, 0.05, 0)));
-    const normMat = new THREE.LineBasicMaterial({
-      color: 0x0000ff,
-    });
-    const normGeometry = new THREE.BufferGeometry().setFromPoints(normPoints);
-    const normLine = new THREE.Line(normGeometry, normMat);
-    normLine.name = "dirLine";
-    scene.add(normLine);
-    //
-
-    //
-    const refPoints = [];
-    refPoints.push(intersects[0].point);
-    refPoints.push(
-      dir
-        .clone()
-        .add(intersects[0].point.clone())
-        .add(new THREE.Vector3(0, 0.05, 0))
-    );
-    const refMat = new THREE.LineBasicMaterial({
-      color: 0xffff00,
-    });
-    const refGeometry = new THREE.BufferGeometry().setFromPoints(refPoints);
-    const refLine = new THREE.Line(refGeometry, refMat);
-    refLine.name = "refLine";
-    scene.add(refLine);
-    //
-
-    //debug
-    // const boxGeometry = new THREE.BoxGeometry(0.05, 0.05, 0.05);
-    // const box = new THREE.Mesh(
-    //   boxGeometry,
-    //   new THREE.MeshPhongMaterial({color: 0xffff00})
-    // );
-    // box.position.copy(intersects[0].point);
-    // scene.add(box);
-
-    const dist = intersects[0].point.distanceTo(camera.position);
-    if (dist <= 0.2) {
-      cameraVelocity = dir.multiplyScalar(0.4);
-      isCollision = true;
-    }
-  }
+  const dir = new THREE.Vector3(forward.x, forward.y, forward.z);
+  collisionCheck(dir);
 
   cameraVelocity.multiplyScalar(0.97);
 
