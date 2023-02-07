@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import {GUI} from "three/examples/jsm/libs/dat.gui.module";
-import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
+// import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 
 let canvas, renderer, scene, camera, geometry, gui;
 let target, ground;
@@ -14,6 +14,8 @@ let reflectionThreshold;
 let intersectObjects;
 let controls;
 let acc;
+let car = new THREE.Object3D();
+let cameraPosition;
 
 const param = {
   reflectionThreshold: 0.1,
@@ -37,8 +39,8 @@ function addCamera() {
   camera = new THREE.PerspectiveCamera(45, 800 / 600, 0.01, 100);
   // camera.position.set(0, 0, 10);
   camera.aspect = canvas.clientWidth / canvas.clientHeight;
-  controls = new OrbitControls(camera, canvas);
-  controls.update();
+  // controls = new OrbitControls(camera, canvas);
+  // controls.update();
 
   const dLight = new THREE.DirectionalLight(0xffffff, 1.0);
   dLight.position.set(-30, 30, 30); // ライトの方向
@@ -55,8 +57,11 @@ function addCamera() {
   scene.add(dLight);
   scene.add(aLight);
 
-  camera.position.set(0, 0.5, 5);
+  camera.position.set(0, 0, 0);
   scene.add(camera);
+  // car.add(camera);
+
+  cameraPosition = camera.position.clone();
 
   window.addEventListener("mousedown", () => {
     onPress = true;
@@ -68,37 +73,49 @@ function addCamera() {
 
   window.addEventListener("mousemove", (e) => {
     if (onPress) {
-      // const rotateYYalue = e.movementX * 0.001;
-      // const rotateXYalue = e.movementY * 0.001;
-      // const up = new THREE.Vector4(0, 1, 0, 0);
-      // up.applyMatrix4(camera.matrix).normalize();
-      // const axis_up = new THREE.Vector3(up.x, up.y, up.z);
-      // camera.rotateOnAxis(axis_up, rotateYYalue);
-      // const right = new THREE.Vector4(1, 0, 0, 0);
-      // right.applyMatrix4(camera.matrix).normalize();
-      // const axis_right = new THREE.Vector3(right.x, right.y, right.z);
-      // camera.rotateOnAxis(axis_right, rotateXYalue);
+      vPhi += e.movementX * -0.005;
+      vTheta += e.movementY * -0.005;
     }
   });
 
-  // window.addEventListener("wheel", (e) => {
-  //   vAlt = vAlt + e.deltaY * 0.05;
-  //   // alt += e.deltaY * -0.05;
-  //   // nextPos = calcLonLatToXYZ(phi * 2.0, theta, alt);
-  //   // camera.position.set(nextPos.x, nextPos.y, nextPos.z);
-  // });
+  window.addEventListener("wheel", (e) => {
+    vAlt = e.deltaY * 0.05;
+  });
 
   window.addEventListener("keydown", (e) => {
     if (e.key === "w") {
-      const v = cameraVelocity.clone();
-      cameraVelocity = v.add(acc.clone().multiplyScalar(0.03 * 10.0));
+      // const v = cameraVelocity.clone();
+      // cameraVelocity = v.add(acc.clone().multiplyScalar(0.03 * 10.0));
+      // car.position.z += 0.2;
+      const forward = new THREE.Vector4(0, 0, -1, 0);
+      forward.applyMatrix4(camera.matrix).normalize();
+      const dir = new THREE.Vector3(forward.x, 0, forward.z);
+      car.position.add(dir.multiplyScalar(0.1));
     }
 
     if (e.key === "s") {
-      const v = cameraVelocity.clone();
-      cameraVelocity = v.add(acc.clone().multiplyScalar(0.03 * 10.0 * -1));
+      // const v = cameraVelocity.clone();
+      // cameraVelocity = v.add(acc.clone().multiplyScalar(0.03 * 10.0 * -1));
+      // car.position.z -= 0.2;
+      const forward = new THREE.Vector4(0, 0, -1, 0);
+      forward.applyMatrix4(camera.matrix).normalize();
+      const dir = new THREE.Vector3(forward.x, 0, forward.z);
+      car.position.add(dir.multiplyScalar(-0.1));
     }
   });
+
+  phi = 0.39;
+  theta = 1.57;
+  alt = 5.0;
+  vPhi = 0;
+  vTheta = 0;
+  vAlt = 0;
+  const p = calcLonLatToXYZ(phi * 2.0, theta, alt);
+  nextPos = p;
+  // camera.position.set(nextPos.x, nextPos.y, nextPos.z);
+  const v3 = new THREE.Vector3(0, 0, 0);
+  car.getWorldPosition(v3);
+  camera.lookAt(v3);
 }
 
 function addBox(x, y, z, sx, sy, sz, rot) {
@@ -125,7 +142,7 @@ function addObject() {
   //sphere
   const cylinderGeometry = new THREE.CylinderGeometry(1, 1, 2, 20, 20); //new THREE.BoxGeometry(2, 1.5, 0.25);
   const cyl = new THREE.Mesh(cylinderGeometry, mat1);
-  cyl.position.set(4, 0, 0);
+  cyl.position.set(5, 0, 0);
   cyl.castShadow = true;
   cyl.receiveShadow = true;
   scene.add(cyl);
@@ -142,12 +159,20 @@ function addObject() {
   //box
   addBox(0, 0, 0, 2, 1.5, 0.25, 0);
   addBox(1.0, 0, 0, 3, 1.5, 0.25, 1.57);
-  addBox(0, -0.5, 3, 2, 0.25, 2, 0);
+  // addBox(0, -0.5, 3, 2, 0.25, 2, 0);
+
+  //mainobj
+  const m = new THREE.MeshPhongMaterial({color: new THREE.Color(1, 0, 0)});
+  const g = new THREE.SphereGeometry(0.3, 10, 10);
+  car = new THREE.Mesh(g, m);
+  car.castShadow = true;
+  car.receiveShadow = true;
+  car.position.set(0, -0.5, 2);
+  scene.add(car);
 
   const groundGeo = new THREE.PlaneGeometry(50, 50, 10, 10);
   ground = new THREE.Mesh(groundGeo, mat);
   ground.receiveShadow = true;
-
   ground.rotateX(-1.57);
   ground.position.set(0, -0.75, 0);
   scene.add(ground);
@@ -232,7 +257,7 @@ function collisionCheck(dir) {
     );
 
     const dist = intersects[0].point.distanceTo(camera.position);
-    if (dist <= 0.3) {
+    if (dist <= 0.4) {
       //acc = dir;
       return dir;
     }
@@ -240,6 +265,22 @@ function collisionCheck(dir) {
   } else {
     return null;
   }
+}
+
+const k = 2;
+const eqLength = 5;
+function calcCameraVelocity() {
+  const camp = new THREE.Vector3(camera.position.x, 0, camera.position.z);
+  const carp = new THREE.Vector3(car.position.x, 0, car.position.z);
+  const dir = carp.clone().sub(camp).normalize();
+  const dist = camp.distanceTo(carp);
+  const ac = k * (dist - eqLength);
+  // const dir = (car.position - camera.position).normalize();
+  // const ax = k * (eqLength - (camera.position.x - car.position.x));
+  // const az = k * (eqLength - (camera.position.z - car.position.z));
+  // const a = new THREE.Vector3(ax, 0, az);
+  const v = cameraVelocity.clone();
+  cameraVelocity = v.add(dir.multiplyScalar(ac * 0.03));
 }
 
 function update() {
@@ -251,34 +292,53 @@ function update() {
     camera.updateProjectionMatrix();
   }
 
-  let cameraPosition = camera.position.clone();
+  const v3 = new THREE.Vector3(0, 0, 0);
+  car.getWorldPosition(v3);
+  camera.lookAt(v3);
 
   renderer.render(scene, camera);
 
+  calcCameraVelocity();
+
   const forward = new THREE.Vector4(0, 0, -1, 0);
   forward.applyMatrix4(camera.matrix).normalize();
-  const dir = new THREE.Vector3(forward.x, forward.y, forward.z);
+  const dir = new THREE.Vector3(forward.x, 0, forward.z);
   acc = dir.clone();
 
   const firstDir = collisionCheck(dir);
   if (firstDir !== null) {
-    acc = firstDir;
+    // acc = firstDir;
+    cameraVelocity = firstDir;
     const secondDir = collisionCheck(firstDir);
     if (secondDir !== null) {
-      acc = secondDir;
+      // acc = secondDir;
+      cameraVelocity = secondDir;
     }
   }
 
-  cameraVelocity.multiplyScalar(0.85);
+  cameraVelocity.multiplyScalar(0.9);
 
   const cv = cameraVelocity.clone();
   cameraPosition.add(cv.multiplyScalar(0.03));
-  camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+
+  vPhi = vPhi * 0.9;
+  vTheta = vTheta * 0.9;
+  vAlt = vAlt * 0.9;
+  phi += vPhi * 0.03;
+  theta += vTheta * 0.03;
+  alt += vAlt * 0.03;
+  const p = calcLonLatToXYZ(phi, theta, alt);
+  // const p = new THREE.Vector3(0.1, 0.1, 0.1);
+
+  const pp = cameraPosition.clone().add(p);
+  // cameraPosition.add(p);
+  camera.position.set(pp.x, pp.y, pp.z);
+
+  // camera.position.set(p.x, p.y, p.z);
 }
 
 function resizeRendererToDisplaySize(renderer) {
   const canvas = renderer.domElement;
-  // const pixelRatio = window.devicePixelRatio;
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   const needResize = canvas.width !== width || canvas.height !== height;
