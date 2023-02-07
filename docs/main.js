@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import {Vector3} from "three";
 import {GUI} from "three/examples/jsm/libs/dat.gui.module";
 // import {OrbitControls} from "three/examples/jsm/controls/OrbitControls";
 
@@ -16,6 +17,8 @@ let controls;
 let acc;
 let car = new THREE.Object3D();
 let cameraPosition;
+let carVel;
+let carAcc;
 
 const param = {
   reflectionThreshold: 0.1,
@@ -33,6 +36,7 @@ function init() {
 
   raycaster = new THREE.Raycaster();
   cameraVelocity = new THREE.Vector3(0, 0, 0);
+  carVel = new Vector3(0, 0, 0);
 }
 
 function addCamera() {
@@ -90,7 +94,11 @@ function addCamera() {
       const forward = new THREE.Vector4(0, 0, -1, 0);
       forward.applyMatrix4(camera.matrix).normalize();
       const dir = new THREE.Vector3(forward.x, 0, forward.z);
-      car.position.add(dir.multiplyScalar(0.1));
+
+      const v = carVel.clone();
+      carVel = v.add(dir.multiplyScalar(1));
+
+      // car.position.add(dir.multiplyScalar(0.1));
     }
 
     if (e.key === "s") {
@@ -100,7 +108,9 @@ function addCamera() {
       const forward = new THREE.Vector4(0, 0, -1, 0);
       forward.applyMatrix4(camera.matrix).normalize();
       const dir = new THREE.Vector3(forward.x, 0, forward.z);
-      car.position.add(dir.multiplyScalar(-0.1));
+
+      const v = carVel.clone();
+      carVel = v.add(dir.multiplyScalar(-1));
     }
   });
 
@@ -317,6 +327,7 @@ function update() {
   }
 
   cameraVelocity.multiplyScalar(0.9);
+  carVel.multiplyScalar(0.9);
 
   const cv = cameraVelocity.clone();
   cameraPosition.add(cv.multiplyScalar(0.03));
@@ -335,6 +346,10 @@ function update() {
   camera.position.set(pp.x, pp.y, pp.z);
 
   // camera.position.set(p.x, p.y, p.z);
+  const carp = car.position;
+  const carv = carVel.clone();
+  carp.add(carv.multiplyScalar(0.03));
+  car.position.set(carp.x, carp.y, carp.z);
 }
 
 function resizeRendererToDisplaySize(renderer) {
